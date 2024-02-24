@@ -1,0 +1,30 @@
+2.0.0
+
+- Modified to work with Azure storage instead of GCP.
+
+-- Wed, 21 Feb 2024 15:20:00 -0400
+
+1.1.2
+
+- Now confirms that file custom metadata field values are populated.
+
+-- Thu, 18 Jan 2024 17:25:00 -0400
+
+1.1.1
+
+- Increases maximum character limit to 255 for BICAN columns:
+  `library_lab_pool_name` and `library_aliquot_name`.
+
+-- Wed, 15 Nov 2023 13:15:00 -0400
+
+1.1.0
+
+- Now enforces manifest column order.
+
+-- Tue, 31 Oct 2023 10:17:00 -0400
+
+1.0.0
+
+- Versioning and changelog formalized.
+
+-- Fri, 20 Oct 2023 18:30:00 -0400
