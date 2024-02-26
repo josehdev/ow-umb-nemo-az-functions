@@ -10,25 +10,24 @@ import logging
 
 from manifest import Manifest
 from validation_checks import validate_manifest, BICAN_COLUMNS
-from azure.identity import ClientSecretCredential, DefaultAzureCredential
+from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient, BlobClient
 
-# This variable is used to identify this Azure Functions Blueprint
+# This Azure Function is defined as a Blueprint.
 # To find the main function definition, search for this variable in this file
 function_process_manifest = func.Blueprint()
 
-# Azure authentication parameters
-azure_storage_account_connection = os.environ['AZURE_STORAGE_ACCOUNT_CONNECTION']
 
 # How many errors to report. The rest will be available in an
 # error file in the bucket, that we will report the path to.
 error_count_to_report = 30
 
-gcp_project_name = os.getenv("GCP_PROJECT_NAME")
-#manifest_bucket = os.getenv("GCP_MANIFEST_BUCKET")
+azure_storage_account_connection = os.environ['AZURE_STORAGE_ACCOUNT_CONNECTION']
 blob_service_uri = os.environ['CONTENT_STORAGE_ACCOUNT__blobServiceUri']
+
+gcp_project_name = os.getenv("GCP_PROJECT_NAME")
+
 manifest_container = os.getenv("AZURE_MANIFEST_CONTAINER")
-#manifest_error_bucket = os.getenv("GCP_MANIFEST_ERROR_BUCKET")
 manifest_error_container = os.getenv("AZURE_MANIFEST_ERROR_CONTAINER")
 nemo_aux_files_container = 'nemo-aux-files'
 
@@ -122,23 +121,10 @@ def confirm_file_metadata_is_present(metadata):
     return all_metadata_present
 
 
-# def get_from_aux_files_bucket(blob_name):
-#     logging.info("In get_from_aux_files_bucket().")
-
-#     bucket = client.get_bucket('nemo-aux-files')
-
-#     blob = bucket.get_blob(blob_name)
-
-#     data = json.loads(blob.download_as_bytes())
-
-#     return data
-
-
 def get_from_aux_files_container(client: BlobServiceClient, blob_name: str):
     logging.info("In get_from_aux_files_container().")
 
     blob = get_blob_client(client, nemo_aux_files_container, blob_name)
-
     data = json.loads(blob.download_blob().readall())
 
     return data
@@ -183,16 +169,11 @@ def get_rabbitmq_channel(rabbitmq_connection, exchange_name, queue_name, routing
 
 def handle_error_condition(client, manifest_name, errors, metadata):
     logging.info("In handle_error_condition().")
-    #error_bucket = client.get_bucket(manifest_error_bucket)
     error_file = manifest_name + '.errors'
-    #error_blob = error_bucket.blob(error_file)
     error_blob = get_blob_client(client, manifest_error_container, error_file)
 
     # Set the metadata for the error file
-    #error_blob.metadata = metadata
-
     error_count = len(errors)
-
     logging.info(f"Number of errors: {error_count}.")
 
     if error_count > 0:
@@ -200,12 +181,7 @@ def handle_error_condition(client, manifest_name, errors, metadata):
     else:
         error_string = "No errors"
 
-    #error_blob.upload_from_string(error_string)
     error_blob.upload_blob(error_string, metadata=metadata, overwrite=True)
-    #error_blob.upload_blob(error_string, overwrite=True)
-    #error_blob.set_blob_metadata(metadata)
-
-    #gcp_error_path = f"gs://{manifest_error_bucket}/{error_file}"
     azure_error_path = f'{blob_service_uri}/{manifest_error_container}/{error_file}'
 
     logging.info(f"Errors available at {azure_error_path}.")
@@ -353,12 +329,12 @@ def make_error_metadata(submission_metadata):
 
 
 @function_process_manifest.blob_trigger(arg_name="blobevent", path=manifest_container,
-                                            connection="CONTENT_STORAGE_ACCOUNT") 
+                                        connection="CONTENT_STORAGE_ACCOUNT") 
 def process_manifest(blobevent: func.InputStream):
     """
     Triggered by a change to a Blob Storage Container.
     Args:
-         event (dict): Event payload.
+         blobevent (InputStream): Event blob stream.
     """
     valid = False
     dryrun = False
@@ -370,10 +346,7 @@ def process_manifest(blobevent: func.InputStream):
     client = get_blob_service_client()
 
     logging.info(f"Processing file: {file_name}.")
-    #bucket = client.get_bucket(manifest_bucket)
 
-    #blob = bucket.get_blob(file_name)
-    #custom_metadata = blob.metadata
     blob = get_blob_client(client, manifest_container, file_name)
     custom_metadata = blob.get_blob_properties().metadata
 
@@ -393,20 +366,11 @@ def process_manifest(blobevent: func.InputStream):
 
     # The name is of the form: manifest-{date}-{time}-{submission_id}.{ext}
     # Example: manifest-2021-09-01-11:31:54-NaYAbB2.csv
-    #gcp_path = f"gs://{manifest_bucket}/{file_name}"
     azure_path = f'{blob_service_uri}/{manifest_container}/{file_name}'
 
     # Download the blob to a temporary file
     tf = tempfile.NamedTemporaryFile(delete = 'linux' in sys.platform.lower())
-    #tf.close()  # not necessary #In Windows it's necessary to close the file to be able to reopen it several times.
 
-    #TODO: Add code to delete the temp file at the end of this function, even when error.  
-    #TODO: Add code to delete the temp file at the end of this function, even when error.  
-    #TODO: Change GCP path for Azure path
-    #TODO: Add code to prevent reprocessing of file bc it may happen when the Fucntion app is redeployed.
-    #      The idea is to add a metadata entry 'validation_result' = Pass|Errors|No Metadata and etc and only process the file if this metadata doesn't exist.   
-
-    #blob.download_to_filename(tf.name)
     download_to_filename(blob, tf.name)
 
     logging.info(f"Successfully downloaded {file_name} from {manifest_container} to {tf.name}.")
@@ -445,9 +409,6 @@ def process_manifest(blobevent: func.InputStream):
         return
 
     # Expected manifest name: manifest-YYYY-MM-DD-HH:MM:SS-abde123.tsv
-
-    # Had to modify the regex to accept _ or : because the test filename can't have :
-    # filename_pattern = r'manifest\-[0-9]{4}\-[0-9]{2}\-[0-9]{2}\-[0-9]{2}\:[0-9]{2}\:[0-9]{2}\-[a-zA-z0-9]{7}\.tsv'
     filename_pattern = r'manifest\-[0-9]{4}\-[0-9]{2}\-[0-9]{2}\-[0-9]{2}[:_][0-9]{2}[:_][0-9]{2}\-[a-zA-z0-9]{7}\.tsv'
 
     # If filename is not what we expect, abort the validation, but make a notification
@@ -472,7 +433,6 @@ def process_manifest(blobevent: func.InputStream):
         logging.info("BICAN manifest detected.")
         program = 'bican'
 
-        #cv = get_from_aux_files_bucket(bican_controlled_vocab_filename)
         cv = get_from_aux_files_container(client, bican_controlled_vocab_filename)
 
         # Do BICAN validation checks
@@ -484,7 +444,6 @@ def process_manifest(blobevent: func.InputStream):
         ## Non-BICAN manifests ##
 
         # Load non-BICAN controlled vocab terms
-        #cv = get_from_aux_files_bucket(controlled_vocab_filename)
         cv = get_from_aux_files_container(client, controlled_vocab_filename)
 
         # Analyze the submitted manifest for errors.
@@ -512,11 +471,9 @@ def process_manifest(blobevent: func.InputStream):
             # NOTE: Will eventually remove biccn filter and will check for all restricted buckets.
             if access_level == "controlled" and program == "biccn":
                 # Get IC form to collection, project, an CA usage mapping
-                #ic_mapping = get_from_aux_files_bucket(ic_form_mapping_filename)
                 ic_mapping = get_from_aux_files_container(client, ic_form_mapping_filename)
 
                 # Get restricted bucket listing
-                #listing_data = get_from_aux_files_bucket(restricted_bucket_list_filename)
                 listing_data = get_from_aux_files_container(client, restricted_bucket_list_filename)
                 bucket_list = listing_data["bucket_list"]
 
