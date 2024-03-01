@@ -1,0 +1,25 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
+    "CONTENT_STORAGE_ACCOUNT__blobServiceUri": "https://owigseusnemodev.blob.core.windows.net",
+    "CONTENT_STORAGE_ACCOUNT__queueServiceUri": "https://owigseusnemodev.queue.core.windows.net",
+    "AZURE_STORAGE_ACCOUNT_CONNECTION":"DefaultEndpointsProtocol=https;AccountName=owigseusnemodev;EndpointSuffix=core.windows.net",
+    "AZURE_MANIFEST_CONTAINER":"nemo-manifest-submissions",
+    "AZURE_MANIFEST_ERROR_CONTAINER":"nemo-manifest-submission-errors",
+    "AUX_FILENAME_CONTROLLED_VOCAB":"controlled_vocab.json",
+    "AUX_FILENAME_IC_FORM_MAPPING":"ic_form_to_project_mappings.json",
+    "AUX_FILENAME_RESTRICTED_BUCKET_LIST":"restricted_bucket_listing.json",
+    "AUX_FILENAME_BICAN_CONTROLLED_VOCAB":"controlled_vocab.bican.json",
+    "RABBITMQ_HOST":"porpoise.rmq.cloudamqp.com",
+    "RABBITMQ_PORT":"5672",
+    "RABBITMQ_VIRTUAL_HOST":"cykdlvsx",
+    "RABBITMQ_USERNAME":"",
+    "RABBITMQ_PASSWORD":"",
+    "RABBITMQ_PUBLISHER_EXCHANGE_NAME":"exch_1",
+    "RABBITMQ_PUBLISHER_QUEUE_NAME":"manifest_validation_status",
+    "RABBITMQ_PUBLISHER_ROUTING_KEY":"manifest_validation_status"
+  }
+}
