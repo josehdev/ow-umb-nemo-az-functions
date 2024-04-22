@@ -13,6 +13,16 @@ from validation_checks import validate_manifest, BICAN_COLUMNS
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient, BlobClient
 
+""""
+Original module created by: UMB
+This version created by: 
+Jose Herrera (jherrera@oakwoodsys.com)
+Oakwood Systems Group, Inc. (www.oakwoodsys.com/)
+Project: Nemo Ingest into Azure Blob Storage 
+April 2024
+
+"""
+
 # This Azure Function is defined as a Blueprint.
 # To find the main function definition, search for this variable in this file
 function_process_manifest = func.Blueprint()
@@ -66,7 +76,9 @@ def download_to_filename(blob: BlobClient, filename: str):
     """    
     with open(filename, mode="wb") as file:
         stream = blob.download_blob()
-        file.write(stream.readall())
+        # Download by chunks to prevent max out memory usage 
+        for chunk in stream.chunks():
+            file.write(chunk)
 
 
 def verify_valid_encoding(filename):
