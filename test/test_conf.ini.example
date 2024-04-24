@@ -1,0 +1,16 @@
+[metadata]
+testfile=test_manifest_biccn_1.tsv
+submitter=
+submitter_first=
+submitter_last=
+submitter_email=
+
+[db]
+host=
+database=
+username=
+password=
+
+[storage-nemo]
+manifest-container=nemo-manifest-submissions
+azure-storage-connection-string=

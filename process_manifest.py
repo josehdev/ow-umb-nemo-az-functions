@@ -35,7 +35,7 @@ error_count_to_report = 30
 azure_storage_account_connection = os.environ['AZURE_STORAGE_ACCOUNT_CONNECTION']
 blob_service_uri = os.environ['CONTENT_STORAGE_ACCOUNT__blobServiceUri']
 
-gcp_project_name = os.getenv("GCP_PROJECT_NAME")
+project_name = os.getenv("PROJECT_NAME")
 
 manifest_container = os.getenv("AZURE_MANIFEST_CONTAINER")
 manifest_error_container = os.getenv("AZURE_MANIFEST_ERROR_CONTAINER")
@@ -293,7 +293,7 @@ def handle_bad_manifest_file(submission_metadata, error):
     last = submission_metadata['last']
     email = submission_metadata['email']
     dryrun = submission_metadata['dryrun']
-    gcp_path = submission_metadata['gcp_path']
+    cloud_path = submission_metadata['cloud_path']
     original_filename = submission_metadata['original_filename']
 
     if error is None:
@@ -301,13 +301,13 @@ def handle_bad_manifest_file(submission_metadata, error):
     else:
         errors = [error]
 
-    # NOTE: Intentionally dropped 'complete_errors' and 'gcp_error_path'
+    # NOTE: Intentionally dropped 'complete_errors' and 'error_path'
     # from paylaod to target appropriate handling in manifest validation
     # listener.
     payload = {
         'submission_id': submission_id,
-        'gcp_manifest_path': gcp_path,
-        'gcp_project_name': gcp_project_name,
+        'manifest_path': cloud_path,
+        'project_name': project_name,
         'original_filename': original_filename,
         'submitter': {
             'username': submitter,
@@ -327,7 +327,7 @@ def handle_bad_manifest_file(submission_metadata, error):
 def make_error_metadata(submission_metadata):
     logging.info("In make_error_metadata().")
     # Keys to exclude from the copy
-    keys_to_exclude = {'original_filename', 'gcp_path'}
+    keys_to_exclude = {'original_filename', 'cloud_path'}
 
     # Use a dictionary comprehension to make a copy of submission_data,
     # but exclude the keys in keys_to_exclude
@@ -378,11 +378,10 @@ def process_manifest(blobevent: func.InputStream):
 
     # The name is of the form: manifest-{date}-{time}-{submission_id}.{ext}
     # Example: manifest-2021-09-01-11:31:54-NaYAbB2.csv
-    azure_path = f'{blob_service_uri}/{manifest_container}/{file_name}'
+    azure_path = blob.url
 
     # Download the blob to a temporary file
     tf = tempfile.NamedTemporaryFile(delete = 'linux' in sys.platform.lower())
-
     download_to_filename(blob, tf.name)
 
     logging.info(f"Successfully downloaded {file_name} from {manifest_container} to {tf.name}.")
@@ -407,7 +406,7 @@ def process_manifest(blobevent: func.InputStream):
         "last": submitter_last,
         "email": submitter_email,
         "original_filename": original_filename,
-        "gcp_path": azure_path
+        "cloud_path": azure_path
     }
 
     logging.info(f"Manifest submitted via the NeMO website by: {submitter}.")
@@ -502,8 +501,8 @@ def process_manifest(blobevent: func.InputStream):
     # Now put together the payload to call NeMO back with the results.
     payload = {
         'submission_id': submission_id,
-        'gcp_manifest_path': azure_path,
-        'gcp_project_name': gcp_project_name,
+        'manifest_path': azure_path,
+        'project_name': project_name,
         'original_filename': original_filename,
         'submitter': {
             'username': submitter,
